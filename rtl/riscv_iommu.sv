@@ -81,16 +81,16 @@ module riscv_iommu #(
     input  logic rst_ni,
 
     // Translation Request Interface (Slave)
-    input  axi_req_iommu_t  dev_tr_req_i,
-    output axi_rsp_t        dev_tr_resp_o,
+    (* dont_touch = "yes" *) (* mark_debug = "true" *) input  axi_req_iommu_t  dev_tr_req_i,
+    (* dont_touch = "yes" *) (* mark_debug = "true" *) output axi_rsp_t        dev_tr_resp_o,
 
     // Translation Completion Interface (Master)
-    input  axi_rsp_t        dev_comp_resp_i,
-    output axi_req_t        dev_comp_req_o,
+    (* dont_touch = "yes" *) (* mark_debug = "true" *) input  axi_rsp_t        dev_comp_resp_i,
+    (* dont_touch = "yes" *) (* mark_debug = "true" *) output axi_req_t        dev_comp_req_o,
 
     // Data Structures Interface (Master)
-    input  axi_rsp_t        ds_resp_i,
-    output axi_req_t        ds_req_o,
+    (* dont_touch = "yes" *) (* mark_debug = "true" *) input  axi_rsp_t        ds_resp_i,
+    (* dont_touch = "yes" *) (* mark_debug = "true" *) output axi_req_t        ds_req_o,
 
     // Programming Interface (Slave)
     input  axi_req_slv_t    prog_req_i,
