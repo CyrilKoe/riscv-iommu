@@ -143,7 +143,7 @@ module rv_iommu_prog_if #(
 
     // APB to REG IF
     apb2reg #(
-       .AddrWidth(56)
+       .AddrWidth( ADDR_WIDTH )
     ) i_apb_to_reg (
         .clk_i     ( clk_i          ),
         .rst_ni    ( rst_ni         ),
