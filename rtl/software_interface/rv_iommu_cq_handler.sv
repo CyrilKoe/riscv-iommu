@@ -28,7 +28,7 @@ module rv_iommu_cq_handler #(
     input  logic rst_ni,
 
     // Regmap
-    input  logic [riscv::PPNW-1:0]  cq_base_ppn_i,      // Base address of the CQ in memory (Should be aligned. See Spec)
+    input  logic [rv_iommu::PPNW-1:0]  cq_base_ppn_i,      // Base address of the CQ in memory (Should be aligned. See Spec)
     input  logic [4:0]              cq_size_i,          // Size of the CQ as log2-1 (2 entries: 0 | 4 entries: 1 | 8 entries: 2 | ...)
 
     input  logic                    cq_en_i,            // CQ enable bit from cqcsr, handled by SW
@@ -73,7 +73,7 @@ module rv_iommu_cq_handler #(
     output logic                        flush_av_o,     // Address valid
     output logic                        flush_gv_o,     // GSCID valid
     output logic                        flush_pscv_o,   // PSCID valid
-    output logic [riscv::GPPNW-1:0]     flush_vpn_o,    // IOVA to tag entries to be flushed
+    output logic [rv_iommu::GPPNW-1:0]     flush_vpn_o,    // IOVA to tag entries to be flushed
     output logic [15:0]                 flush_gscid_o,  // GSCID (Guest physical address space identifier) to tag entries to be flushed
     output logic [19:0]                 flush_pscid_o,  // PSCID (Guest virtual address space identifier) to tag entries to be flushed
 
@@ -100,7 +100,7 @@ module rv_iommu_cq_handler #(
     }   wr_state_q, wr_state_n;
 
     // Physical pointer to access memory
-    logic [riscv::PLEN-1:0] cq_pptr_q, cq_pptr_n;
+    logic [rv_iommu::PLEN-1:0] cq_pptr_q, cq_pptr_n;
 
     // To mask the input head index according to the size of the CQ
     logic [31:0]    masked_head;
@@ -146,7 +146,7 @@ module rv_iommu_cq_handler #(
         // AXI parameters
         // AW
         mem_req_o.aw.id         = 4'b0000;
-        mem_req_o.aw.addr       = {{riscv::XLEN-riscv::PLEN{1'b0}}, cq_pptr_q};
+        mem_req_o.aw.addr       = {{riscv::XLEN-rv_iommu::PLEN{1'b0}}, cq_pptr_q};
         mem_req_o.aw.len        = 8'b0;
         mem_req_o.aw.size       = 3'b010;
         mem_req_o.aw.burst      = axi_pkg::BURST_INCR;
@@ -173,7 +173,7 @@ module rv_iommu_cq_handler #(
 
         // AR
         mem_req_o.ar.id         = 4'b0010;              
-        mem_req_o.ar.addr       = {{riscv::XLEN-riscv::PLEN{1'b0}}, cq_pptr_q}; // Physical address to access
+        mem_req_o.ar.addr       = {{riscv::XLEN-rv_iommu::PLEN{1'b0}}, cq_pptr_q}; // Physical address to access
         mem_req_o.ar.len        = 8'd1;                                         // CQ entries are 16-bytes wide (2 beats)
         mem_req_o.ar.size       = 3'b011;                                       // 64 bits (8 bytes) per beat
         mem_req_o.ar.burst      = axi_pkg::BURST_INCR;                          // Incremental start address
@@ -241,7 +241,7 @@ module rv_iommu_cq_handler #(
                     else if (cq_tail_i != masked_head) begin
 
                         // Set pptr with the paddr of the next entry
-                        cq_pptr_n = {cq_base_ppn_i, 12'b0} | ({{riscv::PLEN-32{1'b0}}, masked_head} << 4);
+                        cq_pptr_n = {cq_base_ppn_i, 12'b0} | ({{rv_iommu::PLEN-32{1'b0}}, masked_head} << 4);
                         state_n = FETCH;
                     end
                 end
@@ -301,7 +301,7 @@ module rv_iommu_cq_handler #(
 
                         flush_av_o      = cmd_iotinval.av;
                         flush_gv_o      = cmd_iotinval.gv;
-                        flush_vpn_o     = cmd_iotinval.addr[riscv::GPPNW-1:0];    // ADDR[63:12]
+                        flush_vpn_o     = cmd_iotinval.addr[rv_iommu::GPPNW-1:0];    // ADDR[63:12]
                         flush_gscid_o   = cmd_iotinval.gscid;
                         flush_pscid_o   = cmd_iotinval.pscid;
 
@@ -355,7 +355,7 @@ module rv_iommu_cq_handler #(
 
                             // "If AV=1, the IOMMU writes DATA to memory at a 4-byte aligned address ADDR[63:2] * 4"
                             if(cmd_iofence.av) begin
-                                cq_pptr_n   = {cmd_iofence.addr[riscv::PLEN-1-2:0], 2'b0};
+                                cq_pptr_n   = {cmd_iofence.addr[rv_iommu::PLEN-1-2:0], 2'b0};
                                 wr_state_n  = AW_REQ;
                                 state_n     = WRITE;
                             end

@@ -21,6 +21,17 @@
 
 package rv_iommu;
 
+    // Previously present in rv_iommu, use cva6_config?
+    localparam VLEN             = (riscv::XLEN == 32) ? 32 : 64;    // virtual address length
+    localparam PLEN             = (riscv::XLEN == 32) ? 34 : 56;    // physical address length
+    localparam GPLEN            = (riscv::XLEN == 32) ? 34 : 41;    // guest physical address length
+    localparam PPNW             = (riscv::XLEN == 32) ? 22 : 44;
+    localparam GPPNW            = (riscv::XLEN == 32) ? 22 : 29;
+    localparam SV               = (riscv::XLEN == 32) ? 32 : 39;
+    localparam SVX              = (riscv::XLEN == 32) ? 34 : 41;
+    localparam VPN2             = (VLEN-31 < 8) ? VLEN-31 : 8;
+    localparam GPPN2            = (riscv::XLEN == 32) ? VLEN-33 : 10;
+
     // Device Context max length
     localparam DEV_ID_MAX_LEN   = 24;
     localparam PROC_ID_MAX_LEN  = 20;
@@ -410,7 +421,7 @@ package rv_iommu;
     // Device Directory Table Pointer (ddtp)
     typedef struct packed {
         logic [9:0]             reserved_2;
-        logic [riscv::PPNW-1:0] ppn;
+        logic [rv_iommu::PPNW-1:0] ppn;
         logic [4:0]             reserved_1;
         logic                   busy;
         logic [3:0]             iommu_mode;
@@ -465,30 +476,30 @@ package rv_iommu;
 
     // Computes the paddr based on the page size, ppn and offset
     // Adapted from MMU function in ariane_pkg
-    function automatic logic [(riscv::GPLEN-1):0] make_gpaddr(
+    function automatic logic [(rv_iommu::GPLEN-1):0] make_gpaddr(
         input logic S1_en, input logic is_1G, input logic is_2M,
-        input logic [(riscv::VLEN-1):0] vaddr, input riscv::pte_t pte);
-        logic [(riscv::GPLEN-1):0] gpaddr;
+        input logic [(rv_iommu::VLEN-1):0] vaddr, input riscv::pte_t pte);
+        logic [(rv_iommu::GPLEN-1):0] gpaddr;
         if (S1_en) begin
-        gpaddr = {pte.ppn[(riscv::GPPNW-1):0], vaddr[11:0]};
+        gpaddr = {pte.ppn[(rv_iommu::GPPNW-1):0], vaddr[11:0]};
         // Giga page
         if (is_1G) gpaddr[29:12] = vaddr[29:12];
         // Mega page
         if (is_2M) gpaddr[20:12] = vaddr[20:12];
         end else begin
-        gpaddr = vaddr[(riscv::GPLEN-1):0];
+        gpaddr = vaddr[(rv_iommu::GPLEN-1):0];
         end
         return gpaddr;
     endfunction : make_gpaddr
 
     // Computes the final gppn based on the guest physical address
     // Adapted from MMU function in ariane_pkg
-    function automatic logic [(riscv::GPPNW-1):0] make_gppn(input logic S1_en, input logic is_1G,
+    function automatic logic [(rv_iommu::GPPNW-1):0] make_gppn(input logic S1_en, input logic is_1G,
                                                             input logic is_2M, input logic [28:0] vpn,
                                                             input riscv::pte_t pte);
-        logic [(riscv::GPPNW-1):0] gppn;
+        logic [(rv_iommu::GPPNW-1):0] gppn;
         if (S1_en) begin
-        gppn = pte.ppn[(riscv::GPPNW-1):0];
+        gppn = pte.ppn[(rv_iommu::GPPNW-1):0];
         if (is_2M) gppn[8:0] = vpn[8:0];
         if (is_1G) gppn[17:0] = vpn[17:0];
         end else begin
@@ -499,14 +510,14 @@ package rv_iommu;
 
     // Extract Interrupt File number from GPA
     // The resulting IF number is used to index the corresponding MSI PTE in memory.
-    function automatic logic [(riscv::GPPNW-1):0] extract_imsic_num(input logic [(riscv::GPPNW-1):0] gpaddr, input logic [riscv::GPPNW-1:0] mask);
-        logic [(riscv::GPPNW-1):0] masked_gpaddr, imsic_num;
+    function automatic logic [(rv_iommu::GPPNW-1):0] extract_imsic_num(input logic [(rv_iommu::GPPNW-1):0] gpaddr, input logic [rv_iommu::GPPNW-1:0] mask);
+        logic [(rv_iommu::GPPNW-1):0] masked_gpaddr, imsic_num;
         int unsigned i;
 
         masked_gpaddr = gpaddr & mask;
         imsic_num = '0;
         i = 0;
-        for (int unsigned k = 0 ; k < riscv::GPPNW; k++) begin
+        for (int unsigned k = 0 ; k < rv_iommu::GPPNW; k++) begin
             if (mask[k]) begin
                 imsic_num[i] = masked_gpaddr[k];
                 i++;

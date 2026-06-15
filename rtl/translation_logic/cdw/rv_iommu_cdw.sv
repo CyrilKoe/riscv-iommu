@@ -69,7 +69,7 @@ module rv_iommu_cdw #(
     input  logic                    init_cdw_i,
 
     // from regmap
-    input  logic [riscv::PPNW-1:0]  ddtp_ppn_i,     // PPN from ddtp register
+    input  logic [rv_iommu::PPNW-1:0]  ddtp_ppn_i,     // PPN from ddtp register
     input  logic [3:0]              ddtp_mode_i     // DDT levels and IOMMU mode
 );
 
@@ -119,7 +119,7 @@ module rv_iommu_cdw #(
     level_t cdw_lvl_q, cdw_lvl_n;
 
     // Physical pointer to access memory bus
-    logic [riscv::PLEN-1:0] cdw_pptr_q, cdw_pptr_n;
+    logic [rv_iommu::PLEN-1:0] cdw_pptr_q, cdw_pptr_n;
 
     // Last DDT/PDT level
     logic is_last_cdw_lvl;
@@ -206,7 +206,7 @@ module rv_iommu_cdw #(
 
         // AR
         mem_req_o.ar.id         = 4'b0001;                         
-        mem_req_o.ar.addr       = {{riscv::XLEN-riscv::PLEN{1'b0}}, cdw_pptr_q};    // Physical address to access
+        mem_req_o.ar.addr       = {{riscv::XLEN-rv_iommu::PLEN{1'b0}}, cdw_pptr_q};    // Physical address to access
         // Number of beats per burst (1 for non-leaf entries, 7/4 for DC)
         mem_req_o.ar.len        = (is_last_cdw_lvl) ? (ar_len) : (8'd0);
         mem_req_o.ar.size       = 3'b011;                                           // 64 bits (8 bytes) per beat

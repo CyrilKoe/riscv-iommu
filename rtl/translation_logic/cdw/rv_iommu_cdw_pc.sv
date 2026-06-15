@@ -80,22 +80,22 @@ module rv_iommu_cdw_pc #(
     input  logic                    pdtc_hit_i,
 
     // from regmap
-    input  logic [riscv::PPNW-1:0]  ddtp_ppn_i,     // PPN from ddtp register
+    input  logic [rv_iommu::PPNW-1:0]  ddtp_ppn_i,     // PPN from ddtp register
     input  logic [3:0]              ddtp_mode_i,    // DDT levels and IOMMU mode
 
     // from DC (for PC walks)
     input  logic                    en_stage2_i,    // Second-stage translation is enabled
-    input  logic [riscv::PPNW-1:0]  pdtp_ppn_i,     // PPN from DC.fsc.PPN
+    input  logic [rv_iommu::PPNW-1:0]  pdtp_ppn_i,     // PPN from DC.fsc.PPN
     input  logic [3:0]              pdtp_mode_i,    // PDT levels from DC.fsc.MODE
 
     // CDW implicit translations (Second-stage only)
     input  logic                        ptw_done_i,
     input  logic                        flush_i,
-    input  logic [riscv::PPNW-1:0]      pdt_ppn_i,
+    input  logic [rv_iommu::PPNW-1:0]      pdt_ppn_i,
     output logic                        cdw_implicit_access_o,
     output logic                        is_ddt_walk_o,
-    output logic [(riscv::GPPNW-1):0]   pdt_gppn_o,
-    output logic [riscv::PPNW-1:0]      iohgatp_ppn_fw_o  // to forward iohgatp.PPN to PTW when translating pdtp.PPN
+    output logic [(rv_iommu::GPPNW-1):0]   pdt_gppn_o,
+    output logic [rv_iommu::PPNW-1:0]      iohgatp_ppn_fw_o  // to forward iohgatp.PPN to PTW when translating pdtp.PPN
 );
 
     // Save and propagate the input device_id/process id to walk multiple levels
@@ -163,7 +163,7 @@ module rv_iommu_cdw_pc #(
     logic is_ddt_walk_q, is_ddt_walk_n;
 
     // Physical pointer to access memory bus
-    logic [riscv::PLEN-1:0] cdw_pptr_q, cdw_pptr_n;
+    logic [rv_iommu::PLEN-1:0] cdw_pptr_q, cdw_pptr_n;
 
     // Last DDT/PDT level
     logic is_last_cdw_lvl;
@@ -259,7 +259,7 @@ module rv_iommu_cdw_pc #(
 
         // AR
         mem_req_o.ar.id         = 4'b0001;                         
-        mem_req_o.ar.addr       = {{riscv::XLEN-riscv::PLEN{1'b0}}, cdw_pptr_q};    // Physical address to access
+        mem_req_o.ar.addr       = {{riscv::XLEN-rv_iommu::PLEN{1'b0}}, cdw_pptr_q};    // Physical address to access
         // Number of beats per burst (1 for non-leaf entries, 2 for PC, 7 for DC)
         mem_req_o.ar.len        = (is_last_cdw_lvl) ? ((is_ddt_walk_q) ? (ar_len) : (8'd1)) : (8'd0);
         mem_req_o.ar.size       = 3'b011;                                           // 64 bits (8 bytes) per beat
@@ -662,7 +662,7 @@ module rv_iommu_cdw_pc #(
                         // Set pdt_ppn with nl.ppn and trigger PTW
                         // NON_LEAF waits for the translation to be completed
                         else begin
-                            pdt_gppn_o = nl.ppn[(riscv::GPPNW-1):0];
+                            pdt_gppn_o = nl.ppn[(rv_iommu::GPPNW-1):0];
                             cdw_implicit_access_o = 1'b1;
                             state_n = NON_LEAF;
                         end
@@ -673,7 +673,7 @@ module rv_iommu_cdw_pc #(
                 else begin
 
                     // Set pdt_ppn with DC.fsc.PPN (pdtp.ppn) and trigger PTW
-                    pdt_gppn_o = dc_fsc_q.ppn[(riscv::GPPNW-1):0];
+                    pdt_gppn_o = dc_fsc_q.ppn[(rv_iommu::GPPNW-1):0];
                     iohgatp_ppn_fw_o = dc_iohgatp_q.ppn;
                     cdw_implicit_access_o = 1'b1;
                     state_n = LEAF;
